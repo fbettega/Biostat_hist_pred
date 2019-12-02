@@ -370,68 +370,30 @@ summary {
 </div>
 
 
-<pre class="r"><code>knitr::opts_chunk$set(echo = TRUE,warning=FALSE)
-library(tidyverse)</code></pre>
-<pre><code>## -- Attaching packages -------------------------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --</code></pre>
-<pre><code>## v ggplot2 3.2.1     v purrr   0.3.3
-## v tibble  2.1.3     v dplyr   0.8.3
-## v tidyr   1.0.0     v stringr 1.4.0
-## v readr   1.3.1     v forcats 0.4.0</code></pre>
-<pre><code>## -- Conflicts ----------------------------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
-## x dplyr::filter() masks stats::filter()
-## x dplyr::lag()    masks stats::lag()</code></pre>
-<pre class="r"><code>library(knitr)
+<pre class="r"><code>knitr::opts_chunk$set(echo = TRUE, warning = FALSE,message = FALSE)
+library(tidyverse)
+library(knitr)
+library(caret)
+library(glmnet)
+library(randomForest)
+library(doParallel)
 
-
-library(caret)</code></pre>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## 
-## Attaching package: &#39;caret&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:purrr&#39;:
-## 
-##     lift</code></pre>
-<pre class="r"><code>library(glmnet)</code></pre>
-<pre><code>## Loading required package: Matrix</code></pre>
-<pre><code>## 
-## Attaching package: &#39;Matrix&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:tidyr&#39;:
-## 
-##     expand, pack, unpack</code></pre>
-<pre><code>## Loading required package: foreach</code></pre>
-<pre><code>## 
-## Attaching package: &#39;foreach&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:purrr&#39;:
-## 
-##     accumulate, when</code></pre>
-<pre><code>## Loaded glmnet 2.0-18</code></pre>
-<pre class="r"><code>library(randomForest)</code></pre>
-<pre><code>## randomForest 4.6-14</code></pre>
-<pre><code>## Type rfNews() to see new features/changes/bug fixes.</code></pre>
-<pre><code>## 
-## Attaching package: &#39;randomForest&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     combine</code></pre>
-<pre><code>## The following object is masked from &#39;package:ggplot2&#39;:
-## 
-##     margin</code></pre>
-<pre class="r"><code>library(doParallel)</code></pre>
-<pre><code>## Loading required package: iterators</code></pre>
-<pre><code>## Loading required package: parallel</code></pre>
-<pre class="r"><code>formule &lt;- function(x,str_r){
+# récupérations de la formule depuis un model
+formule &lt;- function(x,str_r){
   a &lt;- as.character(x)
   b &lt;- str_remove_all(a,str_r)
   c &lt;- paste0(b[2],b[1],b[3])
   return(c)
 }
 
-
+# recupération de la formule avec le noms des gènes
 forule_to_name &lt;- function(formulee){
 colonne &lt;- as.numeric(str_extract_all(formulee,&quot;[:digit:]+&quot;)[[1]])
 nom &lt;- gs[colonne]
 return(nom)
 }
 
+# fonction de pred pour model classique
 out &lt;- function(model,arg_nom){
 test &lt;- readRDS(&quot;data_test_histology.rds&quot;)
 test[,c(2:4,8:12)] &lt;- lapply(test[,c(2:4,8:12)],as.factor)
@@ -445,7 +407,7 @@ pred[ !idx ] &lt;- levels(x = d$histology)[ 2 ]
 table(pred, useNA = &quot;ifany&quot;)
 saveRDS(pred, &quot;results.rds&quot;)
 zip_filename &lt;- paste0(
-    &quot;results_&quot;
+    &quot;results/results_&quot;
   , format(x = Sys.time( ), format = &quot;%Y_%m_%d_-_%s&quot;)
   , &quot;_&quot; ,arg_nom
   , &quot;.zip&quot;
@@ -457,6 +419,7 @@ zip::zip(zip_filename, &quot;results.rds&quot;)
 print(zip_filename)
 }
 
+# out pour ramdom for et ela_net
 out2 &lt;- function(model,arg_nom){
 test &lt;- readRDS(&quot;data_test_histology.rds&quot;)
 test[,c(2:4,8:12)] &lt;- lapply(test[,c(2:4,8:12)],as.factor)
@@ -472,7 +435,7 @@ res[ idx==1] &lt;- levels(x = d$histology)[ 2 ]
 table(res, useNA = &quot;ifany&quot;)
 saveRDS(res, &quot;results.rds&quot;)
 zip_filename &lt;- paste0(
-    &quot;results_&quot;
+    &quot;results/results_&quot;
   , format(x = Sys.time( ), format = &quot;%Y_%m_%d_-_%s&quot;)
   , &quot;_&quot; ,arg_nom
   , &quot;.zip&quot;
@@ -484,7 +447,7 @@ zip::zip(zip_filename, &quot;results.rds&quot;)
 print(zip_filename)
 }
 
-
+# out pour SVM
 outsvm &lt;- function(model,arg_nom){
 test &lt;- readRDS(&quot;data_test_histology.rds&quot;)
 test[,c(2:4,8:12)] &lt;- lapply(test[,c(2:4,8:12)],as.factor)
@@ -498,7 +461,7 @@ pred[pred==1 ] &lt;- levels(x = d$histology)[ 2 ]
 table(pred, useNA = &quot;ifany&quot;)
 saveRDS(pred, &quot;results.rds&quot;)
 zip_filename &lt;- paste0(
-    &quot;results_&quot;
+    &quot;results/results_&quot;
   , format(x = Sys.time( ), format = &quot;%Y_%m_%d_-_%s&quot;)
   , &quot;_&quot; ,arg_nom
   , &quot;.zip&quot;
@@ -508,7 +471,10 @@ if ( !{ &quot;zip&quot; %in% installed.packages( ) } ) {
 }
 zip::zip(zip_filename, &quot;results.rds&quot;)
 print(zip_filename)
-}</code></pre>
+}
+
+#variable pour la parélisations
+cl &lt;- makePSOCKcluster(6)</code></pre>
 <p>The data set ‘data_learn.rds’ is composed of the following information :</p>
 <pre class="r"><code>d = readRDS(file=&quot;data_learn.rds&quot;)
 gs = names(d)[13:1012]
@@ -529,7 +495,6 @@ histo &lt;- as.numeric(d$histology == &quot;TCGA-LUAD&quot;)</code></pre>
 <div id="objectif" class="section level1">
 <h1>Objectif</h1>
 <p>L’objectif de ce rapport et d’évaluer une liste de caractère : - Biological attributes are: age, sex, histology. - Histological attribuites are: tissue_status - Clinical attributes are: os_months, dead, dead_at_24_months, t, n, m, tnm_stage, tnm_grade - Ainsi que des niveau d’expression de certains gène.</p>
-<p>Le tableau ci-dessous porésente les statistiques descriptive pour les variables biologique histologique et cliniques</p>
 <pre class="r"><code>kable(summary(d_to_summary[1:6]), digits=2)</code></pre>
 <table>
 <thead>
@@ -679,16 +644,18 @@ histo &lt;- as.numeric(d$histology == &quot;TCGA-LUAD&quot;)</code></pre>
 </tr>
 </tbody>
 </table>
-<p>A la vue de ce tableau, nous avons choisi comme prétraitement et pour des question de lisibilité de retirer deux colonnes n’apportant pas d’information. Le statuts, tumoral ou non du tissu n’apporté pas d’information, tout nos individu étant des échantillons de tissus cancéreux. Nous avons aussi retiré le grade_tnm qui n’était pas renseigné.</p>
-<p>De plus nous pouvons constater que les colones dead_at_24_months,n,m et tnm_stage contienne des valeurs manquantes il faudra résoudre cette problématiques avant de les intégrer a nos modèle</p>
-<p>Toutes ces variables seront utilisé comme prédicteur du type histologique des tissus cancéreux, notre modèle vise à prédire entre deux type de cancer du poumon : l’adenocarcinome pulmonaire et les carcinomes epidermoides du poumons</p>
-<p>Pour des questions de temps lors de notre recherche de modèle nous ne nous attarderons uniquement sur la signification biologique des gènes utiliser comme varaible dans le modèle obtenant le meilleurs score.</p>
-<p>Durant notre exploration des différents modèle utilisable pour prédire le type hisotlogique du cancer. Nous utiliserons pour le choix de hypers paramètres une cross valaditon a 10 folds.</p>
+<p>Le tableau ci-dessus présente les statistiques descriptives pour les variables biologiques histologiques et cliniques. À la vue de ce tableau, nous avons choisi comme prétraitement et pour des questions de lisibilité de retirer deux colonnes n’apportant pas d’information. Le statut, tumoral ou non tumoral , du tissu ne nous a pas apporté d’information, tous nos individus étant des échantillons de tissus cancéreux. Nous avons aussi retiré le grade_tnm qui n’était pas renseigné.</p>
+<p>De plus nous pouvons constater que les colones dead_at_24_months,n,m est tnm_stage contienne des valeurs manquantes il faudra résoudre cette problématique avant de les intégrer a nos modèles</p>
+<p>toutes ces variables seront utilisées comme prédicateur du type histologique des tissus cancéreux, notre modèle vise à prédire entre deux types de cancer du poumon : l’adénocarcinome pulmonaire et les carcinomes épidermoïdes du poumon</p>
+<p>Pour des questions de temps lors de notre recherche de modèle nous ne nous attarderons uniquement sur la signification biologique des gènes utilisés comme variable dans le modèle obtenant le meilleur score.</p>
+<p>Durant notre exploration des différents modèles utilisable pour prédire le type histologique du cancer. Nous utiliserons pour le choix d’hyper paramètres un cross validation à 10 folds.</p>
 </div>
-<div id="modele-naif" class="section level1">
-<h1>Modele naif</h1>
-<p>Pour commencer nous avons essayé le modèle naif de prédiction de la classe majoritaire pour définir une performance de base pour nos modèle a venir.</p>
-<p>Dans le cas présent il n’y avait pas de classe majoritaire nous avons donc choisi de prédire une classe au hasard.</p>
+<div id="approche-initiale-basé-sur-le-cours" class="section level1">
+<h1>Approche initiale basé sur le cours</h1>
+<div id="modele-naïf" class="section level2">
+<h2>Modele naïf</h2>
+<p>Pour commencer, nous avons essayé le modèle naïf de prédiction de la classe majoritaire pour définir une performance de base pour nos modèles à venir.</p>
+<p>Dans le cas présent il n’y avait pas de classe majoritaire, nous avons donc choisi de prédire une classe au hasard.</p>
 <pre class="r"><code>arg_nom &lt;- &quot;naif&quot;
 idx  &lt;- rep(0,100)
 pred &lt;- numeric()
@@ -696,7 +663,7 @@ pred[  idx ] &lt;- levels(x = d$histology)[ 1 ]
 pred[ !idx ] &lt;- levels(x = d$histology)[ 2 ]
 saveRDS(pred, &quot;results.rds&quot;)
 zip_filename &lt;- paste0(
-    &quot;results_&quot;
+   &quot;results/results_&quot;
   , format(x = Sys.time( ), format = &quot;%Y_%m_%d_-_%s&quot;)
   , &quot;_&quot; ,arg_nom
   , &quot;.zip&quot;
@@ -704,16 +671,15 @@ zip_filename &lt;- paste0(
 if ( !{ &quot;zip&quot; %in% installed.packages( ) } ) {
     install.packages(pkgs = &quot;zip&quot;)
 }
-zip::zip(zip_filename, &quot;results.rds&quot;)</code></pre>
-<pre><code>## Note: zip::zip() is deprecated, please use zip::zipr() instead</code></pre>
-<pre class="r"><code>print(zip_filename)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575234074_naif.zip&quot;</code></pre>
-<p>Notre modèle prédisant toujours TCGA-LUAD obtient un score de 0.51. Cette données est intéressante car elle montre que nous avons un grand potentiel d’amélioration. En utilisant un modèle de regression logistique.</p>
+zip::zip(zip_filename, &quot;results.rds&quot;)
+print(zip_filename)</code></pre>
+<pre><code>## [1] &quot;results/results_2019_12_02_-_1575281955_naif.zip&quot;</code></pre>
+<p>Notre modèle prédisant toujours TCGA-LUAD obtient un score de 0.51. Cette donnée est intéressante, car elle montre que nous avons un grand potentiel d’amélioration. En utilisant un modèle de régression logistique.</p>
 </div>
-<div id="volcano-plot-aic-prob-step-wise" class="section level1">
-<h1>volcano plot + AIC prob step wise</h1>
-<div id="un-model-lineaire-par-gène" class="section level2">
-<h2>un model lineaire par gène</h2>
+<div id="modele-utilisant-volcano-plot-et-aic-step-wise" class="section level2">
+<h2>Modele utilisant volcano plot et AIC “step wise”</h2>
+<div id="un-model-lineaire-par-gène" class="section level3">
+<h3>un model lineaire par gène</h3>
 <pre class="r"><code>res = sapply(gs_num, function(g) {
   m = glm(c(histo,0,0,1,1)~c(d[[g]],0,max(d[,gs_num]),0,max(d[,gs_num])), 
     family = binomial(logit))
@@ -728,10 +694,10 @@ res = as.data.frame(res)
 
 plot(res$beta,-log10(res$pval))</code></pre>
 <p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABUAAAAPACAMAAADDuCPrAAAA6lBMVEUAAAAAADoAAGYAOjoAOmYAOpAAZmYAZrY6AAA6AGY6OgA6Ojo6OmY6OpA6Zjo6ZmY6ZpA6ZrY6kLY6kNtmAABmADpmOgBmOjpmOmZmZjpmZmZmZpBmkLZmkNtmtrZmtttmtv+QOgCQOjqQZgCQZjqQZmaQkJCQkLaQtraQttuQtv+Q29uQ2/+2ZgC2Zjq2kDq2kGa2kJC2kLa2tpC2tra2ttu227a229u22/+2/9u2///bkDrbkGbbtmbbtpDbtrbb25Db27bb29vb2//b/7bb/9vb////tmb/25D/27b/29v//7b//9v////13/uaAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAgAElEQVR4nO29C5vcxLpYrWGbDweT70AgJmc2CZB4Z0OCiROGQLYPJjYJY8Po//+dtLpbUt10qVeluqjWeh6wRi3VRVItvVWlVjctAACIaFIXAACgVBAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAAQhAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAAQhAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAAQhAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAAQhAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAAQhAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAAQhAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAAQhAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAAQhAoAIAQBAoAIASBAgAIQaAAAEIQKACAEAQKACAEgQIACEGgAABCECgAgBAECgAgBIECAAhBoAAA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" width="672" /></p>
-<p>Comme nous avons beaucoup de gène, il est impossible de savoir juste sur le graphique qu’elle gène selectionner. Un problème que nous pourrions rencontrer et que enormement de gènes semble avoirs des P-value très faible (inférieur a <span class="math inline">\(\leq 10^{-10}\)</span>). Il semble raisonnable en ce basant sur ce graphique de choisir les critère suivant pour selectionner les gènes les plus pertinent : <span class="math inline">\(|\beta|\geq 0.5\)</span> et <span class="math inline">\(P-val\leq 10^{-20}\)</span></p>
+<p>Comme nous avons beaucoup de gènes, il est impossible de savoir juste sur le graphique quel gène sélectionner. Un problème que nous pourrions rencontrer et qu’énormément de gènes semblent avoir des P-valeur très faibles (inférieur a <span class="math inline">\(\leq 10^{-10}\)</span>). Il semble raisonnable en se basant sur ce graphique de choisir les critères suivant pour sélectionner les gènes les plus pertinents : <span class="math inline">\(|\beta|\geq 0.5\)</span> et <span class="math inline">\(P-val\leq 10^{-20}\)</span></p>
 <pre class="r"><code>good &lt;- res[(-log10(res$pval)&gt;20&amp;abs(res$beta)&gt;0.5),]</code></pre>
-<p>Avec ces critère il reste donc 65 gènes a essayer d’incorporer dans notre modèle.</p>
-<p>Pour cela nous créeons une liste de nos 65 est en partant du modèles n’utilisant aucune variable ont cherche le modèle avec la meilleur AIC en les ajoutant une par une(dir = “forward”).</p>
+<p>Avec ces critères il reste donc 65 gènes a essayer d’incorporer dans notre modèle.</p>
+<p>Pour cela nous créerons une liste de nos 65 gènes. En partant du modèle n’utilisant aucune variable on cherche le modèle avec la meilleure AIC en les ajoutant une par une(dir = “forward”).</p>
 <pre class="r"><code>par &lt;- paste(paste0(&quot;+&quot;,&quot;d&quot;,&quot;$`&quot;,rownames(good),&quot;`&quot;),collapse = &quot;&quot;)
 par &lt;- paste0(&quot;~&quot;,substr(par,2,nchar(par)))
 # m0 &lt;- glm(paste0(&quot;histo&quot;,par), family = binomial(logit), maxit = 1000)
@@ -742,15 +708,15 @@ par &lt;- paste0(&quot;~&quot;,substr(par,2,nchar(par)))
  formule1 &lt;- formule(step_res$formula,&quot;d\\$&quot;)
 model &lt;- glm(formule(step_res$formula,&quot;d\\$&quot;),data=d, family = binomial(logit))</code></pre>
 <pre class="r"><code>out(model,&quot;volcano&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575234110_volcano.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results/results_2019_12_02_-_1575281986_volcano.zip&quot;</code></pre>
 <pre class="r"><code>gene_volcano &lt;- forule_to_name(formule1)</code></pre>
-<p>Notre modèle comprend 24 gènes et produit un score de 0.91. il utilise les gènes suivant : KLHDC2, PRR34, PPP2R5D, KRTAP5-6, RPL28, TNFRSF25, PIAS4, ATOH8, GIPC2, SLC14A2-AS1, ADAM29, AAK1, RNF219, LOC101929353, LINC00628, ISCA2, TJP2, NKIRAS2, ANKRD28, SLC4A1AP, GNAT2, TCAM1P, SPATA2, MFNG.</p>
+<p>Notre modèle utilise 24 gènes et produit un score de 0.91. il utilise les gènes suivant : KLHDC2, PRR34, PPP2R5D, KRTAP5-6, RPL28, TNFRSF25, PIAS4, ATOH8, GIPC2, SLC14A2-AS1, ADAM29, AAK1, RNF219, LOC101929353, LINC00628, ISCA2, TJP2, NKIRAS2, ANKRD28, SLC4A1AP, GNAT2, TCAM1P, SPATA2, MFNG.</p>
 </div>
 </div>
-<div id="ajout-var-socio-demo" class="section level1">
-<h1>ajout var socio demo</h1>
-<p>Nous avons voulu voir si l’inclusions des biologique et cliniques nous permettait d’améliorer notre modèles.</p>
-<p>C’est variable contenant des valeurs manquantes nous nous sommes intérréssé au nombres d’individus ayant au moins une valeurs manquante.</p>
+<div id="model-utilisant-les-variables-histologique-biologique-et-clinique." class="section level2">
+<h2>Model utilisant les variables histologique biologique et clinique.</h2>
+<p>Nous avons voulu voir si l’inclusion des biologiques et cliniques nous permettait d’améliorer notre modèle.</p>
+<p>Ces variables contenant des valeurs manquantes nous nous sommes intéressés au nombre d’individus ayant au moins une valeur manquante.</p>
 <pre class="r"><code>d_mising &lt;- d %&gt;% select(1:10,- dead_at_24_months) %&gt;% {which(is.na( . ), arr.ind = TRUE)} %&gt;% as.data.frame %&gt;% select(row) %&gt;% unique
 var_bio_clin &lt;- d %&gt;% select(1:10,- dead_at_24_months,-histology) %&gt;% colnames</code></pre>
 <p>Au total 15 individus avaient des valeurs manquantes nous avons donc décidé de les écarter pour l’entrainement de ce modèle.</p>
@@ -770,34 +736,43 @@ step_res2 &lt;- suppressMessages(step(m2, scope = par, dir = &quot;forward&quot;
 formule2 &lt;- formule(step_res2$formula,&quot;d_without_missing\\$&quot;)
 model2 &lt;- glm(formule(step_res2$formula,&quot;d_without_missing\\$&quot;),data=d_without_missing, family = binomial(logit))</code></pre>
 <pre class="r"><code>out(model2,&quot;volcano_bio_clin&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575234121_volcano_bio_clin.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results/results_2019_12_02_-_1575281996_volcano_bio_clin.zip&quot;</code></pre>
 <pre class="r"><code>gene_volcano_bio_clin &lt;- forule_to_name(formule2)</code></pre>
-<p>Nous obtenons un score de 0.9 ce qui est inférieurs au score sans ces variables les variables biologique et cliniques nous conduise donc a un surapprentissage.</p>
-<p>Nous allons maintenant essayé des approches plus approprié à notre type de données. Nous avons ici un problèmes de classification en grande dimmension (avec plus de variable que d’individus).</p>
+<p>Nous obtenons en utilisant le modèle avec ces nouvelles variables un score de 0.9. Ce score est inférieur au score du premier modèle. Les variables biologiques et cliniques nous conduisent donc à un surapprentissage.</p>
+<p>Nous allons maintenant essayer des approches plus appropriées à notre type de données. Nous avons ici un problème de classification en grande dimension (avec plus de variables que d’individus).</p>
+<p>Les approches initiales basées sur la régression logistique simple montrent ici leurs limites, notamment dans le cas d’un jeu de données avec plus de dimension que d’individus. Si nous avions dû uniquement nous contenter d’une régression logistique simple, nous aurions commencé à regarder les combinaisons de deux gènes comme variables prédictives, ainsi que des méthodes de sélections de variables plus poussées que l’AIC.</p>
 </div>
-<div id="méthode-elastic-net" class="section level1">
-<h1>Méthode elastic net</h1>
+</div>
+<div id="approche-machine-learning" class="section level1">
+<h1>Approche Machine learning</h1>
+<p>À la place nous avons choisi de nous orienter vers une approche machine learning en utilisant des algorithmes adaptés à ce type de données.</p>
+<p>Nous essaierons : la régression élastique-NET, les forêts aléatoires et les supports vector machine.</p>
+<p>Comme mentionnés plutôt, nous utiliserons une approche par cross-validations pour optimiser les hyperparamètres des différents modèles. Cette approche nous permettra de dégager des métriques que nous utiliserons lors du choix du modèle final.</p>
+<div id="méthode-elastic-net" class="section level2">
+<h2>Méthode elastic net</h2>
 <pre class="r"><code>df &lt;- cbind(d_without_missing,histo_ss_na=factor(histo_ss_na))
 
 model_ela_net &lt;- train(
   histo_ss_na ~ ., data =df, method = &quot;glmnet&quot;,
-  trControl = trainControl(&quot;cv&quot;, number = 10),
+  trControl = trainControl(&quot;cv&quot;, number = 10,savePredictions = &quot;final&quot;),
   tuneLength = 10
 )
 # Best tuning parameter
 param_elast &lt;- model_ela_net$bestTune
 
+train_per_ela_net &lt;- getTrainPerf(model_ela_net)
 coef_elast &lt;- coef(model_ela_net$finalModel, model_ela_net$bestTune$lambda)
 predictions_ela_net_acc &lt;- model_ela_net %&gt;% predict(df) %&gt;% as.vector(.)==df$histo_ss_na
 
+train_per_ela_net &lt;- getTrainPerf(model_ela_net)
 non_zero_coef_elast &lt;- data.frame(name = coef_elast@Dimnames[[1]][coef_elast@i + 1], coefficient = coef_elast@x)</code></pre>
 <pre class="r"><code>out2(model_ela_net,&quot;elastic_net&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575234146_elastic_net.zip&quot;</code></pre>
-<p>Il existe des modèle de regression pénalisé particulierement adapté a notre type de problématique. La regression elastic-net est un mélange des regression ridge et lasso. Elle permet donc de faire de la selection de variables tout en pénalisant les coeficients. Nous avons choisis comme hyper paramètre <span class="math inline">\(\alpha=\)</span> 0.1 et <span class="math inline">\(\lambda=\)</span> 0.061 . Ce modèle a une accuracy de 0.9981168 sur le jeux d’entrainement. Nous avons conservé les coeficients de ce modèles dans une variables, dans le cas ou on nous poserais des questions sur l’interpréation biologique mais le très grand nombres de coeficients (289 coeficients) rend cette interprétation difficile.</p>
-<p>Ce modèle nous a permis d’obtenir un score de score 0.98.</p>
+<pre><code>## [1] &quot;results/results_2019_12_02_-_1575282016_elastic_net.zip&quot;</code></pre>
+<p>Il existe des modèles de régression pénalisés particulièrement adaptés à notre type de problématique. La régression élastique-NET est un mélange des régressions Ridge et lasso. Elle permet donc de faire de la sélection de variables tout en pénalisant les coefficients. Nous avons choisis comme hyper paramètre <span class="math inline">\(\alpha=\)</span> 0.3 et <span class="math inline">\(\lambda=\)</span> 0.017 . Cette combinaison de paramètre nous permet d’obtenir sur la cross validation une accuracy moyenne de : 0.9791 et comme valeur moyenne de la statistique kappa de : 0.9583 .Sur le jeux de test nous obtenons un score de 0.98.</p>
+<p>sur le jeu d’entrainement. Nous avons conservé les coefficients de ce modèle dans une variable, dans le cas où on nous poserait des questions sur l’interprétation biologique, mais le très grand nombre de coefficients (175 coeficients) rend cette interprétation difficile.</p>
 </div>
-<div id="random-forest" class="section level1">
-<h1>random forest</h1>
+<div id="forêts-aléatoires" class="section level2">
+<h2>Forêts aléatoires</h2>
 <pre class="r"><code># cl &lt;- makePSOCKcluster(5)
 # registerDoParallel(cl)
 # model_random_for &lt;- train(
@@ -812,72 +787,89 @@ non_zero_coef_elast &lt;- data.frame(name = coef_elast@Dimnames[[1]][coef_elast@
 model_random_fortest &lt;- readRDS(&quot;model_random_for.rds&quot;)
 predictions_random_fortest &lt;- model_random_fortest %&gt;% predict(df) %&gt;% as.vector(.)==df$histo_ss_na 
 
+train_per_random_fortest &lt;- getTrainPerf(model_random_fortest)
 
 out2(model_random_fortest,&quot;random_forest&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575234146_random_forest.zip&quot;</code></pre>
-<p>Une des autres approches que nous avons voulu essayer est basé sur les forets aléatoire l’entrainement de ce model étant particulierement long nous avons du le parrallélisé et nous avons préféré le stocké dans un fichiers. Le résultat obtenue était decevant avec un score de 0.96, malgré une accurracy de 1 sur le jeux d’entrainement</p>
+<pre><code>## [1] &quot;results/results_2019_12_02_-_1575282016_random_forest.zip&quot;</code></pre>
+<p>Une des autres approches que nous avons voulu essayer est basée sur les forets aléatoires. L’entrainement de ce modèle étant particulièrement long, nous avons dû le paralléliser et nous avons préféré le stocker dans un fichier.</p>
+<p>Nous avons obtenue par la cross validation une accuracy moyenne de : 0.9642 et comme valeur moyenne de la statistique kappa : 0.9283 . Sur le jeux de test nous obtenons un score de 0.96.</p>
 </div>
-<div id="svm" class="section level1">
-<h1>svm</h1>
-<p>La derniere approche est celle basé sur les support-vector machine n’ayant aucun apriori sur la forme de nos données nous avons utilisé trois kernel simultanément pour comparer leur performances. Un kernel linéaire, un kernel polynomial et un kernel. Pour éviter d’être influencer par les résultat des différents noyau nous avons génré tout les modèle puis soumis les prédictions. Nous avons utilisé la cross validations pour optimiser les différents hyper paramètre selons le kernel choisis.</p>
+<div id="support-vector-machine-svm" class="section level2">
+<h2>Support Vector Machine (SVM)</h2>
+<p>La derniere approche est celle basé sur les support-vector machine n’ayant aucun apriori sur la forme de nos données nous avons utilisé trois noyau simultanément pour comparer leur performances. Un noyau linéaire, un noyau polynomial et un noyau. Pour éviter d’être influencer par les résultat des différents noyau nous avons génré tout les modèle puis soumis les prédictions. Nous avons utilisé la cross validations pour optimiser les différents hyper paramètre selons le noyau choisis.</p>
 <p>Une des contraintes du SVM et de ne travailler qu’avec des valeurs numériques nous avons donc retiré les variables non numériques de notre jeux de données. Une autre approches aurait était de les transformé en valeurs numériques.</p>
 <pre class="r"><code>df_num_svm &lt;- df %&gt;% select(-sex,-dead,-t,-n,-m,-tnm_stage)</code></pre>
-<p>Chacun des model entrainer obtient une accuracy de 1 sur le jeux d’entrainement. ## linear</p>
-<pre class="r"><code>model_svm_linear &lt;- suppressMessages(train(
+<p>Chacun des model entrainer obtient une accuracy de 1 sur le jeux d’entrainement.</p>
+<div id="noyau-linéaire" class="section level3">
+<h3>Noyau linéaire</h3>
+<pre class="r"><code>registerDoParallel(cl)
+
+model_svm_linear &lt;- suppressMessages(train(
  histo_ss_na ~ ., data = df_num_svm, method = &quot;svmLinear&quot;,
   trControl = trainControl(&quot;cv&quot;, number = 10),
   tuneGrid = expand.grid(C = seq(0, 2, length = 20)),
   preProcess = c(&quot;center&quot;)#,&quot;scale&quot;)
  ))
+
+#stopCluster(cl)
+
 param_svm_linear&lt;- model_svm_linear$bestTune
+train_per_svm_linear &lt;- getTrainPerf(model_svm_linear)
 outsvm(model_svm_linear,&quot;svm_linear&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575234215_svm_linear.zip&quot;</code></pre>
-<p>Le SVM a noyau linéaire avec C = 0.1052632 nous a permis d’obtenir un score de 1. Il semble donc parfaitement adapté à la prédictions de nos données de test.</p>
-<p>score 1</p>
-<div id="rbf" class="section level2">
-<h2>rbf</h2>
-<pre class="r"><code>model_svm_rbf &lt;- train(
+<pre><code>## [1] &quot;results/results_2019_12_02_-_1575282046_svm_linear.zip&quot;</code></pre>
+<p>Le SVM a noyau linéaire avec : C = 0.1052632 . Cette combinaison de paramètre nous permet d’obtenir sur la cross validation une accuracy moyenne de : 0.9623 et comme valeur moyenne de la statistique kappa de : 0.9245 .Sur le jeux de test nous obtenons un score de 1. Il semble donc parfaitement adapté à la prédiction de nos données de test.</p>
+</div>
+<div id="noyau-radial-basis-function" class="section level3">
+<h3>Noyau Radial basis function</h3>
+<pre class="r"><code>#registerDoParallel(cl)
+model_svm_rbf &lt;- train(
  histo_ss_na ~ ., data = df_num_svm, method = &quot;svmRadial&quot;,
   trControl = trainControl(&quot;cv&quot;, number = 10),
   #tuneGrid = expand.grid(C = seq(0, 2, length = 20)),
   preProcess = c(&quot;center&quot;)#,&quot;scale&quot;)
   )
+#stopCluster(cl)
+train_per_svm_rbf &lt;- getTrainPerf(model_svm_rbf)
+
 param_svm_rbf&lt;- model_svm_rbf$bestTune
 outsvm(model_svm_rbf,&quot;svm_rbf&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575234230_svm_rbf.zip&quot;</code></pre>
-<p>score 0.94</p>
-<p>Le SVM a noyau linéaire avec C = 1 et <span class="math inline">\(\sigma =\)</span> 2.610^{-4}nous a permis d’obtenir un score de 0.94. Il semble donc conduire a un surapprentissage sur nos données d’entraintement conduisant a de plus mauvaise prédiction qu’avec un noyau linéaire.</p>
+<pre><code>## [1] &quot;results/results_2019_12_02_-_1575282052_svm_rbf.zip&quot;</code></pre>
+<p>Le SVM a noyau linéaire avec C = 1 et <span class="math inline">\(\sigma =\)</span> 2.610^{-4}. Cette combinaison de paramètre nous permet d’obtenir sur la cross validation une accuracy moyenne de : 0.9493 et comme valeur moyenne de la statistique kappa de : 0.8986 .sur le jeu de test nous obtenons un score de 0.94. Il semble donc moins adapté à la forme de nos données que le noyau linéaire.</p>
 </div>
-<div id="polynomial" class="section level2">
-<h2>polynomial</h2>
-<pre class="r"><code>model_svm_Poly &lt;- train(
+<div id="noyau-polynomial" class="section level3">
+<h3>Noyau polynomial</h3>
+<pre class="r"><code>#registerDoParallel(cl)
+model_svm_Poly &lt;- train(
  histo_ss_na ~ ., data = df_num_svm, method = &quot;svmPoly&quot;,
   trControl = trainControl(&quot;cv&quot;, number = 10),
   #tuneGrid = expand.grid(C = seq(0, 2, length = 20)),
   preProcess = c(&quot;center&quot;)
   )
-
+stopCluster(cl)
+registerDoSEQ()
+train_per_svm_Poly &lt;- getTrainPerf(model_svm_Poly)
 param_svm_Poly &lt;- model_svm_Poly$bestTune
 outsvm(model_svm_Poly,&quot;svm_Poly&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575234361_svm_Poly.zip&quot;</code></pre>
-<p>Au vue du score obtenue avec un noyau linéaire nous savons maintenant que le meilleurs modèle polynomial est de degrès 1 ce qui est effectivement le cas.</p>
-<p>Le modèle polynomial avec comme paramètre degree = 1 , scale = 0.001 et C = 0.5. Nous permet comme le noyau linéaire d’obtenir un score de 1.</p>
+<pre><code>## [1] &quot;results/results_2019_12_02_-_1575282098_svm_Poly.zip&quot;</code></pre>
+<p>Au vu du score obtenu avec un noyau linéaire nous savons maintenant que le meilleur modèle polynomial est de degrés 1 ce qui est effectivement le cas.</p>
+<p>Le modèle polynomial avec comme paramètre dégrée = 1 , scale = 0.1 et C = 0.25. Cette combinaison de paramètre nous permet d’obtenir sur la cross validation une accuracy moyenne de : 0.9661 et comme valeur moyenne de la statistique kappa de : 0.9322</p>
+<p>Nous permet comme le noyau linéaire d’obtenir un score de 1.</p>
 </div>
 </div>
-<div id="conclusion" class="section level1">
-<h1>Conclusion</h1>
-<p>Nous avons trouvé de modèle très proche nous permettant de prédire excatement notre jeux de données de test le SVM à noyau linéaire et polynomial. Nous préférons choisir le modèle le plus simple qui est celui à noyau linéaire. Une problématiques et qu’il n’ait pas facile à partir d’un modèle SVM de retirer une significations des coeficient de l’hyper-surface obtenue nous ne pouvons donc par nous attardé sur la significations biologiques des variables.</p>
+</div>
+<div id="choix-dun-modèle" class="section level1">
+<h1>Choix d’un modèle</h1>
+<p>Nous avons trouvé de modèle très proche nous permettant de prédire exactement notre jeu de données de test le SVM à noyau linéaire et polynomial. Une problématique est qu’il n’est pas facile à partir d’un modèle SVM de retirer une signification des coefficients de l’hyper-surface obtenue. Nous ne pouvons donc par nous attarder sur la signification biologique des variables. De notre meilleur modèle, nous allons donc regardé la signification biologique des coefficients de la régression élastique net</p>
 <div id="signification-biologique" class="section level2">
 <h2>Signification biologique</h2>
 <pre class="r"><code>non_zero_coef_elast_ssintercpt &lt;- non_zero_coef_elast[-1,]
 #negatif -&gt; &quot;TCGA-LUAD&quot;
 #positif -&gt; &quot;TCGA-LUSC&quot;
-
 cut_coef &lt;- quantile(abs(non_zero_coef_elast$coefficient),(nrow(non_zero_coef_elast_ssintercpt)-5)/nrow(non_zero_coef_elast_ssintercpt))
 
 best_coef_elast &lt;- non_zero_coef_elast_ssintercpt[abs(non_zero_coef_elast_ssintercpt$coefficient)&gt;= cut_coef,]</code></pre>
-<p>Pour évaluer la pertinence biologique de notre modèle nous avons donc choisi elastic-net qui est le modèle ayant obtenue le meilleurs score et permettant une interpréations des coeficients. Au totale le notre regression a 289 coeficients non null. Nous nous somme intérréssé au 5 variables ayant les plus gros coeficients dans ce modele.</p>
-<p>Ces 5 variables ont toutes un coeficient négatif une valeurs élevé de cette variable oriente donc plutot vers un adénocarcinomes. La variables sont :</p>
+<p>Pour évaluer la pertinence biologique de notre modèle, nous avons donc choisi le modèle élastique-NET qui est le modèle ayant obtenu le meilleur score et permettant une interprétation des coefficients. Au totale notre modèle régression utilisait 175 coefficients non nuls. Nous nous sommes intéressés aux 5 variables ayant les plus gros coefficients dans ce modèle.</p>
+<p>Ces 5 variables ont toutes un coefficient négatif, une valeur élevée de cette variable oriente donc Pluto vers un adénocarcinome. Les variables sont :</p>
 <pre class="r"><code>nom &lt;- gs[as.numeric(unlist(str_extract_all(as.character(best_coef_elast$name),&quot;[:digit:]+&quot;)))]
 best_coef_elast$name &lt;- c(&quot;tnm_stageIII&quot;,nom)
 kable(best_coef_elast,  row.names = FALSE,digits=2)</code></pre>
@@ -891,33 +883,88 @@ kable(best_coef_elast,  row.names = FALSE,digits=2)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">tnm_stageIII</td>
-<td align="right">-0.33</td>
+<td align="right">-0.39</td>
 </tr>
 <tr class="even">
-<td align="left">NDUFB5</td>
-<td align="right">-0.19</td>
+<td align="left">CD1C</td>
+<td align="right">-0.41</td>
 </tr>
 <tr class="odd">
-<td align="left">CD1C</td>
-<td align="right">-0.20</td>
+<td align="left">ABTB1</td>
+<td align="right">-0.54</td>
 </tr>
 <tr class="even">
-<td align="left">ABTB1</td>
-<td align="right">-0.28</td>
+<td align="left">ANKRD20A4</td>
+<td align="right">-0.35</td>
 </tr>
 <tr class="odd">
 <td align="left">POR</td>
-<td align="right">-0.25</td>
+<td align="right">-0.44</td>
 </tr>
 </tbody>
 </table>
-<p>Le stade tnm_stageIII semble indiquer que dans notre jeux de données les adénocarcinomes avait un grade TNM plus élever. Mais une recherche rapide sur internet ne semble pas montrer que les adénocarcinomes pulmonaire aurait tendance à etre plus gros ou plus invasif que les carcinomes epidermoides du poumons.</p>
-<p>le gène NDUFB5 semble être surexprimé dans un certains nombre de cancer sans spécficité particuliere pour les adénocarcinomes pulmonaire.</p>
-<p>Le gène CD1C qui code pour la protéine présente à la surface de cellulle présentatrice d’antigène impliqué notament dans la réponse immunitaire via les lymphocyte T.Une modification de l’expression de ce gène semble être présente dans tout les types de cancer mais il semble l’etre particulierement dans les adenocarcinomes pulmonaire il semble donc logique que ce soit un bon prédicteur.</p>
-<p>Une modification de l’expression du gène ABTB1 semble être présente dans différents cancer ce qui semble normale quand on sait que la protéine pour laquelle il code fait partie de la grande famille des supresseurs de tumeurs. Il semble que se soit particulierement vrai dans le cas des carcinomes epidermoides du poumons, il semble donc étrange que ce gène soit associé à la prédictions de l’adonocarcinome.</p>
-<p>POR est un gène participant a la synthèse du cytochrome P450, cette enzyme participe à la métabolisation de nombreuse molécules, elle est notament impliqué dans la métabolisation de nombreux médicaments. Nous n’avons pas réussi à trouvé de lien entre l’expression de ce gène est un des 2 types histologique de cancer rechercher.</p>
-<p>Pour aller plus loins il aurrait pu être intérréssant d’effectuer un pretraitement avec des techniques de réductions de dimmensions mais la forme de notre jeux de données plus de variables que d’individus rend l’ACP classique impossible. Il aurait donc était nécessaire de faire des recherches supplémentaire sur les techniques utilisable.</p>
+<p>Le stade tnm_stageIII semble indiquer que dans notre jeu de données les adénocarcinomes avaient un grade TNM plus élever. Mais une recherche rapide sur internet ne semble pas montrer que les adénocarcinomes pulmonaires auraient tendance à être plus gros ou plus invasifs que les carcinomes épidermoïdes du poumon.</p>
+<p>Le gène NDUFB5 semble être surexprimé dans un certain nombre de cancers sans spécificité particulière pour les adénocarcinomes pulmonaires.</p>
+<p>Le gène CD1C qui code pour la protéine présente à la surface des cellules présentatrice d’antigène. Ces cellules sont impliquées notamment dans la réponse immunitaire via les lymphocytes T. Une modification de l’expression de ce gène semble être présente dans tous les types de cancer. Mais l’expression de ce gène semble particulièrement altérée dans l’adénocarcinome pulmonaire. Il semble donc logique que ce soit un bon prédicateur.</p>
+<p>Une modification de l’expression du gène ABTB1 semble être présente dans différents cancers ce qui semble normal quand on sait que la protéine pour laquelle il code fait partie de la grande famille des suppresseurs de tumeurs. Il semble que ce soit particulièrement vrai dans le cas des carcinomes épidermoïdes du poumon, il semble donc étrange que ce gène soit associé à la prédiction de l’adénocarcinome.</p>
+<p>POR est un gène participant à la synthèse du cytochrome P450, cette enzyme participe à la métabolisation de nombreuses molécules, elle est notamment impliquée dans la métabolisation de nombreux médicaments. Nous n’avons pas réussi à trouver de lien entre l’expression de ce gène et un des 2 types histologiques de cancer rechercher.</p>
 </div>
+<div id="choix-du-modèle" class="section level2">
+<h2>Choix du modèle</h2>
+<p>Je trouve que la méthode d’évaluation de la méthode du score conduit à un surapprentissage en effet elle pousse a essayé différents modèles jusqu’à obtenir un score que nous considérons comme acceptable. Ce processus conduit à un surapprentissage “manuel”. Ce questionnement ouvre deux méthodes de sélection du modèle.</p>
+<p>La première utilise le score fourni sur Codalab, j’ai alors l’information que le SVM linéaire et polynomial conduisent à un résultat équivalent et parfait auquel cas je choisirai de privilégié le modèle le plus simple qui est <strong>le modèle linéaire</strong> . C’est l’approche que j’ai choisi de suivre dans ce rapport, car c’est, il me semble, ce que vous attendiez.</p>
+<p>La seconde méthode est la méthode que je choisirais dans un cas concret. Je me baserais sur les valeurs d’accurracy et de la statistique kappa. Que nous avons obtenu durant la crossvalidations, afin de sélectionner un modèle en ignorant l’information fournie par codalab ! Vous retrouverez ces valeurs dans le tableau ci-dessous.</p>
+<pre class="r"><code>model_selection &lt;- as.data.frame(rbind(train_per_ela_net,train_per_svm_Poly,train_per_svm_rbf,train_per_random_fortest,train_per_svm_linear))
+model_selection &lt;- model_selection[,c(&quot;method&quot;,&quot;TrainAccuracy&quot;,&quot;TrainKappa&quot;)]
+model_selection$method &lt;- c(&quot;Regression elastique-NET&quot;,&quot;SVM polynomial&quot;,&quot;SVM RBF&quot;,&quot;Random Forest&quot;,&quot;SVM linéaire&quot;)
+
+best_mod &lt;- model_selection[which.max((model_selection$TrainAccuracy)&amp;(model_selection$TrainKappa)),1]
+kable(model_selection)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">method</th>
+<th align="right">TrainAccuracy</th>
+<th align="right">TrainKappa</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Regression elastique-NET</td>
+<td align="right">0.9791364</td>
+<td align="right">0.9582675</td>
+</tr>
+<tr class="even">
+<td align="left">SVM polynomial</td>
+<td align="right">0.9661022</td>
+<td align="right">0.9322206</td>
+</tr>
+<tr class="odd">
+<td align="left">SVM RBF</td>
+<td align="right">0.9493308</td>
+<td align="right">0.8986333</td>
+</tr>
+<tr class="even">
+<td align="left">Random Forest</td>
+<td align="right">0.9641778</td>
+<td align="right">0.9283422</td>
+</tr>
+<tr class="odd">
+<td align="left">SVM linéaire</td>
+<td align="right">0.9622977</td>
+<td align="right">0.9245161</td>
+</tr>
+</tbody>
+</table>
+<p>En se basant sur ce tableau nous aurions donc choisi le Regression elastique-NET qui maximise à la fois l’accuracy :0.9661 et la statistique kappa : 0.9322.</p>
+</div>
+</div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>En conclusion le choix du modèle est grandement dépendant des objectifs et sous objectifs fixés, par exemple :</p>
+<p>Si nous devons donner une signification biologique à notre modèle il semble préférable d’utiliser une régression élastique-NET avec <span class="math inline">\(\alpha=\)</span> 0.3 et <span class="math inline">\(\lambda=\)</span> 0.017 fournissant un score de 0.98.</p>
+<p>Si notre modèle peut être une boite noire, nous choisirons notre modèle en nous basant sur l’accuraccy et la statistique kappa. Sur ce critère nous choisirions un SVM à noyau polynomial, avec comme paramètre dégrée = 1 , scale = 0.1 et C = 0.25.</p>
+<p>Pour aller plus loin, il aurait pu être intéressant d’effectuer un prétraitement avec des techniques de réduction de dimensions, mais la forme de notre jeu de données plus de variables que d’individus rend l’ACP classique impossible. Il aurait donc été nécessaire de faire des recherches supplémentaires sur les techniques utilisables.</p>
 </div>
 
 
