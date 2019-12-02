@@ -707,7 +707,7 @@ if ( !{ &quot;zip&quot; %in% installed.packages( ) } ) {
 zip::zip(zip_filename, &quot;results.rds&quot;)</code></pre>
 <pre><code>## Note: zip::zip() is deprecated, please use zip::zipr() instead</code></pre>
 <pre class="r"><code>print(zip_filename)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575231703_naif.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results_2019_12_01_-_1575234074_naif.zip&quot;</code></pre>
 <p>Notre modèle prédisant toujours TCGA-LUAD obtient un score de 0.51. Cette données est intéressante car elle montre que nous avons un grand potentiel d’amélioration. En utilisant un modèle de regression logistique.</p>
 </div>
 <div id="volcano-plot-aic-prob-step-wise" class="section level1">
@@ -742,7 +742,7 @@ par &lt;- paste0(&quot;~&quot;,substr(par,2,nchar(par)))
  formule1 &lt;- formule(step_res$formula,&quot;d\\$&quot;)
 model &lt;- glm(formule(step_res$formula,&quot;d\\$&quot;),data=d, family = binomial(logit))</code></pre>
 <pre class="r"><code>out(model,&quot;volcano&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575231743_volcano.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results_2019_12_01_-_1575234110_volcano.zip&quot;</code></pre>
 <pre class="r"><code>gene_volcano &lt;- forule_to_name(formule1)</code></pre>
 <p>Notre modèle comprend 24 gènes et produit un score de 0.91. il utilise les gènes suivant : KLHDC2, PRR34, PPP2R5D, KRTAP5-6, RPL28, TNFRSF25, PIAS4, ATOH8, GIPC2, SLC14A2-AS1, ADAM29, AAK1, RNF219, LOC101929353, LINC00628, ISCA2, TJP2, NKIRAS2, ANKRD28, SLC4A1AP, GNAT2, TCAM1P, SPATA2, MFNG.</p>
 </div>
@@ -770,7 +770,7 @@ step_res2 &lt;- suppressMessages(step(m2, scope = par, dir = &quot;forward&quot;
 formule2 &lt;- formule(step_res2$formula,&quot;d_without_missing\\$&quot;)
 model2 &lt;- glm(formule(step_res2$formula,&quot;d_without_missing\\$&quot;),data=d_without_missing, family = binomial(logit))</code></pre>
 <pre class="r"><code>out(model2,&quot;volcano_bio_clin&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575231756_volcano_bio_clin.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results_2019_12_01_-_1575234121_volcano_bio_clin.zip&quot;</code></pre>
 <pre class="r"><code>gene_volcano_bio_clin &lt;- forule_to_name(formule2)</code></pre>
 <p>Nous obtenons un score de 0.9 ce qui est inférieurs au score sans ces variables les variables biologique et cliniques nous conduise donc a un surapprentissage.</p>
 <p>Nous allons maintenant essayé des approches plus approprié à notre type de données. Nous avons ici un problèmes de classification en grande dimmension (avec plus de variable que d’individus).</p>
@@ -792,8 +792,8 @@ predictions_ela_net_acc &lt;- model_ela_net %&gt;% predict(df) %&gt;% as.vector(
 
 non_zero_coef_elast &lt;- data.frame(name = coef_elast@Dimnames[[1]][coef_elast@i + 1], coefficient = coef_elast@x)</code></pre>
 <pre class="r"><code>out2(model_ela_net,&quot;elastic_net&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575231780_elastic_net.zip&quot;</code></pre>
-<p>Il existe des modèle de regression pénalisé particulierement adapté a notre type de problématique. La regression elastic-net est un mélange des regression ridge et lasso. Elle permet donc de faire de la selection de variables tout en pénalisant les coeficients. Nous avons choisis comme hyper paramètre <span class="math inline">\(\alpha=\)</span> 0.1 et <span class="math inline">\(\lambda=\)</span> 0.04 . Ce modèle a une accuracy de 1 sur le jeux d’entrainement. Nous avons conservé les coeficients de ce modèles dans une variables, dans le cas ou on nous poserais des questions sur l’interpréation biologique mais le très grand nombres de coeficients (327 coeficients) rend cette interprétation difficile.</p>
+<pre><code>## [1] &quot;results_2019_12_01_-_1575234146_elastic_net.zip&quot;</code></pre>
+<p>Il existe des modèle de regression pénalisé particulierement adapté a notre type de problématique. La regression elastic-net est un mélange des regression ridge et lasso. Elle permet donc de faire de la selection de variables tout en pénalisant les coeficients. Nous avons choisis comme hyper paramètre <span class="math inline">\(\alpha=\)</span> 0.1 et <span class="math inline">\(\lambda=\)</span> 0.061 . Ce modèle a une accuracy de 0.9981168 sur le jeux d’entrainement. Nous avons conservé les coeficients de ce modèles dans une variables, dans le cas ou on nous poserais des questions sur l’interpréation biologique mais le très grand nombres de coeficients (289 coeficients) rend cette interprétation difficile.</p>
 <p>Ce modèle nous a permis d’obtenir un score de score 0.98.</p>
 </div>
 <div id="random-forest" class="section level1">
@@ -814,7 +814,7 @@ predictions_random_fortest &lt;- model_random_fortest %&gt;% predict(df) %&gt;% 
 
 
 out2(model_random_fortest,&quot;random_forest&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575231780_random_forest.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results_2019_12_01_-_1575234146_random_forest.zip&quot;</code></pre>
 <p>Une des autres approches que nous avons voulu essayer est basé sur les forets aléatoire l’entrainement de ce model étant particulierement long nous avons du le parrallélisé et nous avons préféré le stocké dans un fichiers. Le résultat obtenue était decevant avec un score de 0.96, malgré une accurracy de 1 sur le jeux d’entrainement</p>
 </div>
 <div id="svm" class="section level1">
@@ -831,7 +831,7 @@ out2(model_random_fortest,&quot;random_forest&quot;)</code></pre>
  ))
 param_svm_linear&lt;- model_svm_linear$bestTune
 outsvm(model_svm_linear,&quot;svm_linear&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575231849_svm_linear.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results_2019_12_01_-_1575234215_svm_linear.zip&quot;</code></pre>
 <p>Le SVM a noyau linéaire avec C = 0.1052632 nous a permis d’obtenir un score de 1. Il semble donc parfaitement adapté à la prédictions de nos données de test.</p>
 <p>score 1</p>
 <div id="rbf" class="section level2">
@@ -844,9 +844,9 @@ outsvm(model_svm_linear,&quot;svm_linear&quot;)</code></pre>
   )
 param_svm_rbf&lt;- model_svm_rbf$bestTune
 outsvm(model_svm_rbf,&quot;svm_rbf&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575231864_svm_rbf.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results_2019_12_01_-_1575234230_svm_rbf.zip&quot;</code></pre>
 <p>score 0.94</p>
-<p>Le SVM a noyau linéaire avec C = 1 et <span class="math inline">\(\sigma =\)</span> 2.510^{-4}nous a permis d’obtenir un score de 0.94. Il semble donc conduire a un surapprentissage sur nos données d’entraintement conduisant a de plus mauvaise prédiction qu’avec un noyau linéaire.</p>
+<p>Le SVM a noyau linéaire avec C = 1 et <span class="math inline">\(\sigma =\)</span> 2.610^{-4}nous a permis d’obtenir un score de 0.94. Il semble donc conduire a un surapprentissage sur nos données d’entraintement conduisant a de plus mauvaise prédiction qu’avec un noyau linéaire.</p>
 </div>
 <div id="polynomial" class="section level2">
 <h2>polynomial</h2>
@@ -859,9 +859,9 @@ outsvm(model_svm_rbf,&quot;svm_rbf&quot;)</code></pre>
 
 param_svm_Poly &lt;- model_svm_Poly$bestTune
 outsvm(model_svm_Poly,&quot;svm_Poly&quot;)</code></pre>
-<pre><code>## [1] &quot;results_2019_12_01_-_1575231996_svm_Poly.zip&quot;</code></pre>
+<pre><code>## [1] &quot;results_2019_12_01_-_1575234361_svm_Poly.zip&quot;</code></pre>
 <p>Au vue du score obtenue avec un noyau linéaire nous savons maintenant que le meilleurs modèle polynomial est de degrès 1 ce qui est effectivement le cas.</p>
-<p>Le modèle polynomial avec comme paramètre degree = 1 , scale = 0.1 et C = 0.25. Nous permet comme le noyau linéaire d’obtenir un score de 1.</p>
+<p>Le modèle polynomial avec comme paramètre degree = 1 , scale = 0.001 et C = 0.5. Nous permet comme le noyau linéaire d’obtenir un score de 1.</p>
 </div>
 </div>
 <div id="conclusion" class="section level1">
@@ -876,7 +876,7 @@ outsvm(model_svm_Poly,&quot;svm_Poly&quot;)</code></pre>
 cut_coef &lt;- quantile(abs(non_zero_coef_elast$coefficient),(nrow(non_zero_coef_elast_ssintercpt)-5)/nrow(non_zero_coef_elast_ssintercpt))
 
 best_coef_elast &lt;- non_zero_coef_elast_ssintercpt[abs(non_zero_coef_elast_ssintercpt$coefficient)&gt;= cut_coef,]</code></pre>
-<p>Pour évaluer la pertinence biologique de notre modèle nous avons donc choisi elastic-net qui est le modèle ayant obtenue le meilleurs score et permettant une interpréations des coeficients. Au totale le notre regression a 327 coeficients non null. Nous nous somme intérréssé au 5 variables ayant les plus gros coeficients dans ce modele.</p>
+<p>Pour évaluer la pertinence biologique de notre modèle nous avons donc choisi elastic-net qui est le modèle ayant obtenue le meilleurs score et permettant une interpréations des coeficients. Au totale le notre regression a 289 coeficients non null. Nous nous somme intérréssé au 5 variables ayant les plus gros coeficients dans ce modele.</p>
 <p>Ces 5 variables ont toutes un coeficient négatif une valeurs élevé de cette variable oriente donc plutot vers un adénocarcinomes. La variables sont :</p>
 <pre class="r"><code>nom &lt;- gs[as.numeric(unlist(str_extract_all(as.character(best_coef_elast$name),&quot;[:digit:]+&quot;)))]
 best_coef_elast$name &lt;- c(&quot;tnm_stageIII&quot;,nom)
@@ -891,23 +891,23 @@ kable(best_coef_elast,  row.names = FALSE,digits=2)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">tnm_stageIII</td>
-<td align="right">-0.45</td>
+<td align="right">-0.33</td>
 </tr>
 <tr class="even">
 <td align="left">NDUFB5</td>
-<td align="right">-0.22</td>
+<td align="right">-0.19</td>
 </tr>
 <tr class="odd">
 <td align="left">CD1C</td>
-<td align="right">-0.23</td>
+<td align="right">-0.20</td>
 </tr>
 <tr class="even">
 <td align="left">ABTB1</td>
-<td align="right">-0.31</td>
+<td align="right">-0.28</td>
 </tr>
 <tr class="odd">
 <td align="left">POR</td>
-<td align="right">-0.29</td>
+<td align="right">-0.25</td>
 </tr>
 </tbody>
 </table>
